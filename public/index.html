@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Norcross GA Property Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        .card-hover { transition: transform 0.2s, box-shadow 0.2s; }
+        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.15); }
+        .modern-badge { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+        .hero-bg { background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%); }
+        .price-tag { background: linear-gradient(135deg, #059669, #10b981); }
+        .img-fallback { background: linear-gradient(135deg, #cbd5e1, #94a3b8); }
+        .skeleton { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+    <!-- Header -->
+    <header class="hero-bg text-white">
+        <div class="max-w-7xl mx-auto px-4 py-8 sm:py-12">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight">
+                        Norcross Property Tracker
+                    </h1>
+                    <p class="mt-2 text-gray-300 text-lg">
+                        Modern homes over 3,000 sqft &bull; No HOA &bull; Within 10 miles
+                    </p>
+                </div>
+                <div id="last-updated" class="text-sm text-gray-400"></div>
+            </div>
+
+            <!-- Stats -->
+            <div id="stats-bar" class="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div class="bg-white/10 backdrop-blur rounded-xl p-4 text-center">
+                    <div class="text-2xl font-bold" id="stat-total">--</div>
+                    <div class="text-sm text-gray-300">Total Listings</div>
+                </div>
+                <div class="bg-white/10 backdrop-blur rounded-xl p-4 text-center">
+                    <div class="text-2xl font-bold" id="stat-avg-price">--</div>
+                    <div class="text-sm text-gray-300">Avg Price</div>
+                </div>
+                <div class="bg-white/10 backdrop-blur rounded-xl p-4 text-center">
+                    <div class="text-2xl font-bold" id="stat-min-price">--</div>
+                    <div class="text-sm text-gray-300">Lowest Price</div>
+                </div>
+                <div class="bg-white/10 backdrop-blur rounded-xl p-4 text-center">
+                    <div class="text-2xl font-bold" id="stat-avg-sqft">--</div>
+                    <div class="text-sm text-gray-300">Avg Sqft</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Filters -->
+    <div class="max-w-7xl mx-auto px-4 py-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-wrap gap-4 items-end">
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">Sort By</label>
+                <select id="sort-by" class="rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="price">Price</option>
+                    <option value="sqft">Square Feet</option>
+                    <option value="bedrooms">Bedrooms</option>
+                    <option value="yearBuilt">Year Built</option>
+                    <option value="daysOnMarket">Days on Market</option>
+                    <option value="modernScore">Modern Score</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">Order</label>
+                <select id="sort-order" class="rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="asc">Low to High</option>
+                    <option value="desc">High to Low</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">Min Price</label>
+                <input type="number" id="min-price" placeholder="No min" class="rounded-lg border-gray-300 border px-3 py-2 text-sm w-32 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">Max Price</label>
+                <input type="number" id="max-price" placeholder="No max" class="rounded-lg border-gray-300 border px-3 py-2 text-sm w-32 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <button onclick="applyFilters()" class="bg-indigo-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">
+                Apply
+            </button>
+        </div>
+    </div>
+
+    <!-- Listings Grid -->
+    <main class="max-w-7xl mx-auto px-4 pb-12">
+        <div id="result-count" class="mb-4 text-sm text-gray-500"></div>
+        <div id="listings-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="skeleton bg-white rounded-xl h-96"></div>
+            <div class="skeleton bg-white rounded-xl h-96"></div>
+            <div class="skeleton bg-white rounded-xl h-96"></div>
+        </div>
+        <div id="no-results" class="hidden text-center py-16">
+            <div class="text-6xl mb-4">🏠</div>
+            <h3 class="text-xl font-semibold text-gray-700">No listings found</h3>
+            <p class="text-gray-500 mt-2">Try adjusting your filters or check back tomorrow for new listings.</p>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-gray-400 py-6 text-center text-sm">
+        <p>Property data sourced from Zillow &bull; Updated daily</p>
+        <p class="mt-1">Listings within 10 miles of Norcross, GA &bull; No HOA &bull; Over 3,000 sqft</p>
+    </footer>
+
+    <script>
+        let allListings = [];
+
+        function formatPrice(price) {
+            if (!price) return 'N/A';
+            return '$' + price.toLocaleString('en-US', { maximumFractionDigits: 0 });
+        }
+
+        function formatSqft(sqft) {
+            if (!sqft) return 'N/A';
+            return sqft.toLocaleString('en-US') + ' sqft';
+        }
+
+        function modernBadge(score) {
+            if (score >= 3) return '<span class="modern-badge text-white text-xs font-bold px-2 py-1 rounded-full">Very Modern</span>';
+            if (score >= 1) return '<span class="bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-1 rounded-full">Modern</span>';
+            return '';
+        }
+
+        function createCard(l) {
+            const badge = modernBadge(l.modernScore);
+            const year = l.yearBuilt ? `Built ${l.yearBuilt}` : '';
+            const days = l.daysOnMarket ? `${l.daysOnMarket}d on market` : '';
+            const zest = l.zestimate ? `<span class="text-xs text-gray-400">Zestimate: ${formatPrice(l.zestimate)}</span>` : '';
+
+            return `
+                <a href="${l.listingUrl}" target="_blank" rel="noopener noreferrer"
+                   class="card-hover bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden block">
+                    <div class="relative h-48">
+                        ${l.imageUrl
+                            ? `<img src="${l.imageUrl}" alt="${l.address}" class="w-full h-full object-cover" loading="lazy"
+                                    onerror="this.parentElement.innerHTML='<div class=\\'img-fallback w-full h-full flex items-center justify-center text-white text-4xl\\'>🏠</div>'">`
+                            : '<div class="img-fallback w-full h-full flex items-center justify-center text-white text-4xl">🏠</div>'
+                        }
+                        <div class="absolute top-3 left-3 price-tag text-white font-bold px-3 py-1 rounded-lg text-sm shadow-lg">
+                            ${formatPrice(l.price)}
+                        </div>
+                        <div class="absolute top-3 right-3 flex gap-1">${badge}</div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-gray-900 text-lg leading-tight">${l.address}</h3>
+                        <p class="text-gray-500 text-sm mt-1">${l.city}, ${l.state} ${l.zipcode}</p>
+                        <div class="mt-3 flex items-center gap-4 text-sm text-gray-600">
+                            <span>${l.bedrooms} bd</span>
+                            <span>${l.bathrooms} ba</span>
+                            <span>${formatSqft(l.sqft)}</span>
+                        </div>
+                        <div class="mt-2 flex items-center justify-between text-xs text-gray-400">
+                            <span>${year}</span>
+                            <span>${days}</span>
+                        </div>
+                        ${zest}
+                    </div>
+                </a>
+            `;
+        }
+
+        function applyFilters() {
+            const sortBy = document.getElementById('sort-by').value;
+            const order = document.getElementById('sort-order').value;
+            const minPrice = parseFloat(document.getElementById('min-price').value) || 0;
+            const maxPrice = parseFloat(document.getElementById('max-price').value) || Infinity;
+
+            let filtered = allListings.filter(l => l.price >= minPrice && l.price <= maxPrice);
+
+            filtered.sort((a, b) => {
+                const va = a[sortBy] || 0;
+                const vb = b[sortBy] || 0;
+                return order === 'asc' ? va - vb : vb - va;
+            });
+
+            render(filtered);
+        }
+
+        function render(listings) {
+            const grid = document.getElementById('listings-grid');
+            const noResults = document.getElementById('no-results');
+            const count = document.getElementById('result-count');
+
+            if (listings.length === 0) {
+                grid.classList.add('hidden');
+                noResults.classList.remove('hidden');
+                count.textContent = '';
+            } else {
+                grid.classList.remove('hidden');
+                noResults.classList.add('hidden');
+                count.textContent = `Showing ${listings.length} listings`;
+                grid.innerHTML = listings.map(createCard).join('');
+            }
+        }
+
+        async function init() {
+            try {
+                const resp = await fetch('/listings.json');
+                const data = await resp.json();
+
+                allListings = data.listings || [];
+
+                // Stats
+                document.getElementById('stat-total').textContent = data.count || 0;
+                document.getElementById('stat-avg-price').textContent = formatPrice(data.stats?.avgPrice);
+                document.getElementById('stat-min-price').textContent = formatPrice(data.stats?.minPrice);
+                document.getElementById('stat-avg-sqft').textContent = data.stats?.avgSqft
+                    ? data.stats.avgSqft.toLocaleString() + ' sqft' : '--';
+
+                // Last updated
+                if (data.lastUpdated) {
+                    const d = new Date(data.lastUpdated);
+                    document.getElementById('last-updated').textContent =
+                        'Updated: ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                }
+
+                applyFilters();
+            } catch (err) {
+                console.error('Failed to load listings:', err);
+                document.getElementById('listings-grid').innerHTML =
+                    '<p class="col-span-3 text-center text-red-500 py-8">Failed to load listings. Please try again later.</p>';
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
