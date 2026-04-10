@@ -14,10 +14,20 @@
         .modern-badge { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
         .hero-bg { background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%); }
         .price-tag { background: linear-gradient(135deg, #059669, #10b981); }
+        .score-tag { background: linear-gradient(135deg, #d97706, #f59e0b); }
         .img-fallback { background: linear-gradient(135deg, #cbd5e1, #94a3b8); }
         .skeleton { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
-        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .tab-active { border-bottom: 3px solid #6366f1; color: #6366f1; font-weight: 700; }
+        .tab-inactive { border-bottom: 3px solid transparent; color: #9ca3af; }
+        .tab-inactive:hover { color: #6b7280; }
+        .score-ring { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; }
+        .score-excellent { background: conic-gradient(#059669 calc(var(--pct) * 1%), #e5e7eb 0); }
+        .score-good { background: conic-gradient(#2563eb calc(var(--pct) * 1%), #e5e7eb 0); }
+        .score-fair { background: conic-gradient(#d97706 calc(var(--pct) * 1%), #e5e7eb 0); }
+        .score-low { background: conic-gradient(#dc2626 calc(var(--pct) * 1%), #e5e7eb 0); }
+        .breakdown-bar { height: 8px; border-radius: 4px; background: #e5e7eb; }
+        .breakdown-fill { height: 8px; border-radius: 4px; }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -59,55 +69,149 @@
         </div>
     </header>
 
-    <!-- Filters -->
-    <div class="max-w-7xl mx-auto px-4 py-6">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-wrap gap-4 items-end">
-            <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">Sort By</label>
-                <select id="sort-by" class="rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                    <option value="price">Price</option>
-                    <option value="sqft">Square Feet</option>
-                    <option value="bedrooms">Bedrooms</option>
-                    <option value="yearBuilt">Year Built</option>
-                    <option value="daysOnMarket">Days on Market</option>
-                    <option value="modernScore">Modern Score</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">Order</label>
-                <select id="sort-order" class="rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                    <option value="asc">Low to High</option>
-                    <option value="desc">High to Low</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">Min Price</label>
-                <input type="number" id="min-price" placeholder="No min" class="rounded-lg border-gray-300 border px-3 py-2 text-sm w-32 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">Max Price</label>
-                <input type="number" id="max-price" placeholder="No max" class="rounded-lg border-gray-300 border px-3 py-2 text-sm w-32 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-            </div>
-            <button onclick="applyFilters()" class="bg-indigo-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">
-                Apply
+    <!-- Tabs -->
+    <div class="max-w-7xl mx-auto px-4 pt-6">
+        <div class="flex gap-6 border-b border-gray-200">
+            <button onclick="switchTab('browse')" id="tab-browse" class="pb-3 text-sm font-medium tab-active cursor-pointer">
+                All Listings
+            </button>
+            <button onclick="switchTab('airbnb')" id="tab-airbnb" class="pb-3 text-sm font-medium tab-inactive cursor-pointer">
+                Airbnb Investment Picks
             </button>
         </div>
     </div>
 
-    <!-- Listings Grid -->
-    <main class="max-w-7xl mx-auto px-4 pb-12">
-        <div id="result-count" class="mb-4 text-sm text-gray-500"></div>
-        <div id="listings-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div class="skeleton bg-white rounded-xl h-96"></div>
-            <div class="skeleton bg-white rounded-xl h-96"></div>
-            <div class="skeleton bg-white rounded-xl h-96"></div>
+    <!-- Browse Tab -->
+    <div id="view-browse">
+        <!-- Filters -->
+        <div class="max-w-7xl mx-auto px-4 py-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-wrap gap-4 items-end">
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Sort By</label>
+                    <select id="sort-by" class="rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+                        <option value="price">Price</option>
+                        <option value="investmentScore">Investment Score</option>
+                        <option value="sqft">Square Feet</option>
+                        <option value="bedrooms">Bedrooms</option>
+                        <option value="yearBuilt">Year Built</option>
+                        <option value="daysOnMarket">Days on Market</option>
+                        <option value="modernScore">Modern Score</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Order</label>
+                    <select id="sort-order" class="rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+                        <option value="asc">Low to High</option>
+                        <option value="desc">High to Low</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Min Price</label>
+                    <input type="number" id="min-price" placeholder="No min" class="rounded-lg border-gray-300 border px-3 py-2 text-sm w-32 focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Max Price</label>
+                    <input type="number" id="max-price" placeholder="No max" class="rounded-lg border-gray-300 border px-3 py-2 text-sm w-32 focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <button onclick="applyFilters()" class="bg-indigo-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">
+                    Apply
+                </button>
+            </div>
         </div>
-        <div id="no-results" class="hidden text-center py-16">
-            <div class="text-6xl mb-4">🏠</div>
-            <h3 class="text-xl font-semibold text-gray-700">No listings found</h3>
-            <p class="text-gray-500 mt-2">Try adjusting your filters or check back tomorrow for new listings.</p>
+
+        <main class="max-w-7xl mx-auto px-4 pb-12">
+            <div id="result-count" class="mb-4 text-sm text-gray-500"></div>
+            <div id="listings-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="skeleton bg-white rounded-xl h-96"></div>
+                <div class="skeleton bg-white rounded-xl h-96"></div>
+                <div class="skeleton bg-white rounded-xl h-96"></div>
+            </div>
+            <div id="no-results" class="hidden text-center py-16">
+                <div class="text-6xl mb-4">🏠</div>
+                <h3 class="text-xl font-semibold text-gray-700">No listings found</h3>
+                <p class="text-gray-500 mt-2">Try adjusting your filters.</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Airbnb Investment Tab -->
+    <div id="view-airbnb" class="hidden">
+        <div class="max-w-7xl mx-auto px-4 py-6">
+
+            <!-- Algorithm Explainer -->
+            <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-6 mb-8">
+                <h2 class="text-xl font-bold text-gray-900 mb-2">Airbnb Investment Algorithm</h2>
+                <p class="text-gray-600 text-sm mb-4">
+                    Each property is scored 0-100 based on short-term rental potential in the $300-500k range.
+                    Higher scores indicate better value for Airbnb investment near Norcross, GA.
+                </p>
+                <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 text-xs">
+                    <div class="bg-white rounded-lg p-3 text-center">
+                        <div class="font-bold text-indigo-600 text-lg">25</div>
+                        <div class="text-gray-500 mt-1">Price Sweet Spot</div>
+                        <div class="text-gray-400">$350-450k peak</div>
+                    </div>
+                    <div class="bg-white rounded-lg p-3 text-center">
+                        <div class="font-bold text-indigo-600 text-lg">25</div>
+                        <div class="text-gray-500 mt-1">Bedrooms</div>
+                        <div class="text-gray-400">More beds = more $</div>
+                    </div>
+                    <div class="bg-white rounded-lg p-3 text-center">
+                        <div class="font-bold text-indigo-600 text-lg">15</div>
+                        <div class="text-gray-500 mt-1">Price/Sqft Value</div>
+                        <div class="text-gray-400">Lower = better deal</div>
+                    </div>
+                    <div class="bg-white rounded-lg p-3 text-center">
+                        <div class="font-bold text-indigo-600 text-lg">10</div>
+                        <div class="text-gray-500 mt-1">Bath Ratio</div>
+                        <div class="text-gray-400">1 bath per bed ideal</div>
+                    </div>
+                    <div class="bg-white rounded-lg p-3 text-center">
+                        <div class="font-bold text-indigo-600 text-lg">10</div>
+                        <div class="text-gray-500 mt-1">Sqft Bonus</div>
+                        <div class="text-gray-400">3500-5000 sweet spot</div>
+                    </div>
+                    <div class="bg-white rounded-lg p-3 text-center">
+                        <div class="font-bold text-indigo-600 text-lg">10</div>
+                        <div class="text-gray-500 mt-1">Days on Market</div>
+                        <div class="text-gray-400">More = leverage</div>
+                    </div>
+                    <div class="bg-white rounded-lg p-3 text-center">
+                        <div class="font-bold text-indigo-600 text-lg">5</div>
+                        <div class="text-gray-500 mt-1">Modern/Updated</div>
+                        <div class="text-gray-400">Better photos & rates</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Revenue Assumptions -->
+            <div class="bg-white border border-gray-200 rounded-xl p-6 mb-8">
+                <h3 class="font-bold text-gray-900 mb-3">Revenue Estimate Assumptions (Atlanta Metro Avg)</h3>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm text-gray-600">
+                    <div><span class="font-medium text-gray-900">Base nightly:</span> $150</div>
+                    <div><span class="font-medium text-gray-900">Per extra bed:</span> +$25/night</div>
+                    <div><span class="font-medium text-gray-900">Occupancy:</span> 65%</div>
+                    <div><span class="font-medium text-gray-900">Target CoC:</span> 8%+</div>
+                </div>
+            </div>
+
+            <!-- Top Picks Count -->
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-gray-900">
+                    Top Picks <span id="airbnb-count" class="text-indigo-600"></span>
+                </h2>
+                <span class="text-sm text-gray-400">$300k - $500k range &bull; Ranked by investment score</span>
+            </div>
+
+            <!-- Airbnb Picks Grid -->
+            <div id="airbnb-grid" class="space-y-4"></div>
+            <div id="no-airbnb" class="hidden text-center py-16">
+                <div class="text-6xl mb-4">📊</div>
+                <h3 class="text-xl font-semibold text-gray-700">No listings in the $300-500k range</h3>
+                <p class="text-gray-500 mt-2">Check back when new listings appear in this price range.</p>
+            </div>
         </div>
-    </main>
+    </div>
 
     <!-- Footer -->
     <footer class="bg-gray-800 text-gray-400 py-6 text-center text-sm">
@@ -117,6 +221,7 @@
 
     <script>
         let allListings = [];
+        let airbnbPicks = [];
 
         function formatPrice(price) {
             if (!price) return 'N/A';
@@ -134,11 +239,35 @@
             return '';
         }
 
+        function scoreColor(score) {
+            if (score >= 75) return { cls: 'score-excellent', text: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', label: 'Excellent' };
+            if (score >= 60) return { cls: 'score-good', text: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-200', label: 'Good' };
+            if (score >= 40) return { cls: 'score-fair', text: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', label: 'Fair' };
+            return { cls: 'score-low', text: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200', label: 'Below Avg' };
+        }
+
+        function breakdownBar(label, value, max, color) {
+            const pct = Math.round((value / max) * 100);
+            return `
+                <div class="flex items-center gap-2 text-xs">
+                    <span class="w-20 text-gray-500 text-right">${label}</span>
+                    <div class="breakdown-bar flex-1">
+                        <div class="breakdown-fill ${color}" style="width:${pct}%"></div>
+                    </div>
+                    <span class="w-10 text-gray-600 font-medium">${value}/${max}</span>
+                </div>
+            `;
+        }
+
+        // ---- Browse view cards ----
         function createCard(l) {
             const badge = modernBadge(l.modernScore);
             const year = l.yearBuilt ? `Built ${l.yearBuilt}` : '';
             const days = l.daysOnMarket ? `${l.daysOnMarket}d on market` : '';
-            const zest = l.zestimate ? `<span class="text-xs text-gray-400">Zestimate: ${formatPrice(l.zestimate)}</span>` : '';
+            const sc = l.investmentScore ? scoreColor(l.investmentScore) : null;
+            const scoreBadge = sc
+                ? `<span class="text-xs font-bold px-2 py-1 rounded-full ${sc.bg} ${sc.text}">Score: ${l.investmentScore}</span>`
+                : '';
 
             return `
                 <a href="${l.listingUrl}" target="_blank" rel="noopener noreferrer"
@@ -152,7 +281,7 @@
                         <div class="absolute top-3 left-3 price-tag text-white font-bold px-3 py-1 rounded-lg text-sm shadow-lg">
                             ${formatPrice(l.price)}
                         </div>
-                        <div class="absolute top-3 right-3 flex gap-1">${badge}</div>
+                        <div class="absolute top-3 right-3 flex gap-1">${badge} ${scoreBadge}</div>
                     </div>
                     <div class="p-4">
                         <h3 class="font-semibold text-gray-900 text-lg leading-tight">${l.address}</h3>
@@ -166,12 +295,121 @@
                             <span>${year}</span>
                             <span>${days}</span>
                         </div>
-                        ${zest}
                     </div>
                 </a>
             `;
         }
 
+        // ---- Airbnb investment cards ----
+        function createAirbnbCard(l, rank) {
+            const sc = scoreColor(l.investmentScore);
+            const bd = l.scoreBreakdown || {};
+            const rev = l.revenueEstimate || {};
+            const badge = modernBadge(l.modernScore);
+
+            return `
+                <div class="bg-white rounded-xl shadow-sm border ${sc.border} overflow-hidden">
+                    <div class="flex flex-col lg:flex-row">
+                        <!-- Image -->
+                        <div class="relative lg:w-80 h-56 lg:h-auto flex-shrink-0">
+                            ${l.imageUrl
+                                ? `<img src="${l.imageUrl}" alt="${l.address}" class="w-full h-full object-cover" loading="lazy"
+                                        onerror="this.parentElement.innerHTML='<div class=\\'img-fallback w-full h-full flex items-center justify-center text-white text-4xl\\'>🏠</div>'">`
+                                : '<div class="img-fallback w-full h-full flex items-center justify-center text-white text-4xl">🏠</div>'
+                            }
+                            <div class="absolute top-3 left-3 bg-black/70 text-white font-extrabold px-3 py-1 rounded-lg text-lg">
+                                #${rank}
+                            </div>
+                            <div class="absolute bottom-3 left-3 price-tag text-white font-bold px-3 py-1 rounded-lg shadow-lg">
+                                ${formatPrice(l.price)}
+                            </div>
+                            <div class="absolute top-3 right-3">${badge}</div>
+                        </div>
+
+                        <!-- Details -->
+                        <div class="flex-1 p-5">
+                            <div class="flex items-start justify-between gap-4">
+                                <div>
+                                    <a href="${l.listingUrl}" target="_blank" class="text-xl font-bold text-gray-900 hover:text-indigo-600 transition-colors">
+                                        ${l.address}
+                                    </a>
+                                    <p class="text-gray-500 text-sm">${l.city}, ${l.state} ${l.zipcode}</p>
+                                    <div class="mt-2 flex items-center gap-4 text-sm text-gray-600">
+                                        <span class="font-medium">${l.bedrooms} bd</span>
+                                        <span class="font-medium">${l.bathrooms} ba</span>
+                                        <span class="font-medium">${formatSqft(l.sqft)}</span>
+                                        ${l.pricePerSqft ? `<span class="text-gray-400">$${l.pricePerSqft}/sqft</span>` : ''}
+                                        ${l.daysOnMarket ? `<span class="text-gray-400">${l.daysOnMarket}d on market</span>` : ''}
+                                    </div>
+                                </div>
+
+                                <!-- Score Ring -->
+                                <div class="flex-shrink-0 text-center">
+                                    <div class="score-ring ${sc.cls} mx-auto" style="--pct:${l.investmentScore}">
+                                        <div class="bg-white rounded-full w-12 h-12 flex items-center justify-center">
+                                            ${l.investmentScore}
+                                        </div>
+                                    </div>
+                                    <div class="text-xs font-bold mt-1 ${sc.text}">${sc.label}</div>
+                                </div>
+                            </div>
+
+                            <!-- Two columns: Breakdown + Revenue -->
+                            <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <!-- Score Breakdown -->
+                                <div class="space-y-1.5">
+                                    <div class="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Score Breakdown</div>
+                                    ${breakdownBar('Price', bd.priceSweet || 0, 25, 'bg-emerald-500')}
+                                    ${breakdownBar('Bedrooms', bd.bedrooms || 0, 25, 'bg-blue-500')}
+                                    ${breakdownBar('$/Sqft', bd.valuePpSqft || 0, 15, 'bg-violet-500')}
+                                    ${breakdownBar('Baths', bd.bathRatio || 0, 10, 'bg-cyan-500')}
+                                    ${breakdownBar('Size', bd.sqftBonus || 0, 10, 'bg-amber-500')}
+                                    ${breakdownBar('DOM', bd.domLeverage || 0, 10, 'bg-orange-500')}
+                                    ${breakdownBar('Modern', bd.modern || 0, 5, 'bg-pink-500')}
+                                </div>
+
+                                <!-- Revenue Estimate -->
+                                <div class="${sc.bg} rounded-lg p-4">
+                                    <div class="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">Estimated Airbnb Revenue</div>
+                                    <div class="space-y-2 text-sm">
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-500">Nightly Rate</span>
+                                            <span class="font-bold text-gray-900">${formatPrice(rev.nightlyRate)}/night</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-500">Monthly Gross</span>
+                                            <span class="font-bold text-gray-900">${formatPrice(rev.monthlyGross)}/mo</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-500">Annual Gross</span>
+                                            <span class="font-bold text-gray-900">${formatPrice(rev.annualGross)}/yr</span>
+                                        </div>
+                                        <div class="border-t border-gray-200 pt-2 flex justify-between">
+                                            <span class="text-gray-500">Cash-on-Cash Return</span>
+                                            <span class="font-extrabold text-lg ${rev.cashOnCash >= 8 ? 'text-emerald-600' : rev.cashOnCash >= 5 ? 'text-blue-600' : 'text-amber-600'}">
+                                                ${rev.cashOnCash || 0}%
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ---- Tab switching ----
+        function switchTab(tab) {
+            document.getElementById('tab-browse').className = `pb-3 text-sm font-medium cursor-pointer ${tab === 'browse' ? 'tab-active' : 'tab-inactive'}`;
+            document.getElementById('tab-airbnb').className = `pb-3 text-sm font-medium cursor-pointer ${tab === 'airbnb' ? 'tab-active' : 'tab-inactive'}`;
+            document.getElementById('view-browse').classList.toggle('hidden', tab !== 'browse');
+            document.getElementById('view-airbnb').classList.toggle('hidden', tab !== 'airbnb');
+
+            if (tab === 'airbnb') renderAirbnb();
+        }
+
+        // ---- Browse rendering ----
         function applyFilters() {
             const sortBy = document.getElementById('sort-by').value;
             const order = document.getElementById('sort-order').value;
@@ -179,17 +417,15 @@
             const maxPrice = parseFloat(document.getElementById('max-price').value) || Infinity;
 
             let filtered = allListings.filter(l => l.price >= minPrice && l.price <= maxPrice);
-
             filtered.sort((a, b) => {
                 const va = a[sortBy] || 0;
                 const vb = b[sortBy] || 0;
                 return order === 'asc' ? va - vb : vb - va;
             });
-
-            render(filtered);
+            renderBrowse(filtered);
         }
 
-        function render(listings) {
+        function renderBrowse(listings) {
             const grid = document.getElementById('listings-grid');
             const noResults = document.getElementById('no-results');
             const count = document.getElementById('result-count');
@@ -206,21 +442,38 @@
             }
         }
 
+        // ---- Airbnb rendering ----
+        function renderAirbnb() {
+            const grid = document.getElementById('airbnb-grid');
+            const noResults = document.getElementById('no-airbnb');
+            const count = document.getElementById('airbnb-count');
+
+            if (airbnbPicks.length === 0) {
+                grid.classList.add('hidden');
+                noResults.classList.remove('hidden');
+            } else {
+                grid.classList.remove('hidden');
+                noResults.classList.add('hidden');
+                count.textContent = `(${airbnbPicks.length} properties)`;
+                grid.innerHTML = airbnbPicks.map((l, i) => createAirbnbCard(l, i + 1)).join('');
+            }
+        }
+
+        // ---- Init ----
         async function init() {
             try {
                 const resp = await fetch('/listings.json');
                 const data = await resp.json();
 
                 allListings = data.listings || [];
+                airbnbPicks = data.airbnbPicks || [];
 
-                // Stats
                 document.getElementById('stat-total').textContent = data.count || 0;
                 document.getElementById('stat-avg-price').textContent = formatPrice(data.stats?.avgPrice);
                 document.getElementById('stat-min-price').textContent = formatPrice(data.stats?.minPrice);
                 document.getElementById('stat-avg-sqft').textContent = data.stats?.avgSqft
                     ? data.stats.avgSqft.toLocaleString() + ' sqft' : '--';
 
-                // Last updated
                 if (data.lastUpdated) {
                     const d = new Date(data.lastUpdated);
                     document.getElementById('last-updated').textContent =
