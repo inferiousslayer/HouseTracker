@@ -57,6 +57,10 @@ def process_result(prop: dict) -> dict | None:
     if sqft < MIN_SQFT:
         return None
 
+    price = prop.get("unformattedPrice") or 0
+    if price > 550000:
+        return None
+
     addr = prop.get("address", {})
     coords = prop.get("latLong", {})
     description = prop.get("description") or ""
@@ -285,7 +289,7 @@ def fetch_and_export():
         return
 
     print("Fetching listings for Norcross, GA area...")
-    print("  Filters: Houses, >= 3000 sqft, No HOA, ~10mi radius")
+    print("  Filters: Houses, >= 2500 sqft, <= $550k, No HOA, ~10mi radius")
 
     all_listings = []
     seen_ids = set()

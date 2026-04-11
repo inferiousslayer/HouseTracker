@@ -9,7 +9,7 @@ RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY", "")
 RAPIDAPI_HOST = "real-estate101.p.rapidapi.com"
 
 # Search parameters
-MIN_SQFT = 3000
+MIN_SQFT = 2500
 
 # Norcross, GA coordinates
 NORCROSS_LAT = 33.9412
@@ -37,6 +37,7 @@ SEARCH_QUERY_STATE = {
         "sort": {"value": "globalrelevanceex"},
         "ah": {"value": True},
         "sf": {"min": MIN_SQFT},
+        "price": {"max": 550000},
         "tow": {"value": False},
         "mf": {"value": False},
         "con": {"value": False},
