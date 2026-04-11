@@ -33,12 +33,19 @@ OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "public")
 OUTPUT_FILE = os.path.join(OUTPUT_DIR, "listings.json")
 
 
-def search_listings(page=1):
+def search_listings(page=1, max_retries=5):
     url = f"{API_BASE}/api/search/byurl"
     params = {"url": ZILLOW_SEARCH_URL, "page": str(page)}
-    resp = requests.get(url, headers=HEADERS, params=params, timeout=30)
-    resp.raise_for_status()
-    return resp.json()
+    for attempt in range(max_retries):
+        resp = requests.get(url, headers=HEADERS, params=params, timeout=30)
+        if resp.status_code == 429:
+            wait = 2 ** attempt * 5  # 5s, 10s, 20s, 40s, 80s
+            print(f"    Rate limited, waiting {wait}s (attempt {attempt+1}/{max_retries})...")
+            time.sleep(wait)
+            continue
+        resp.raise_for_status()
+        return resp.json()
+    resp.raise_for_status()  # Raise if all retries exhausted
 
 
 def compute_modern_score(description: str) -> int:
